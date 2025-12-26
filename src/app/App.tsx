@@ -9,6 +9,8 @@ import { Beer, Plus, FlaskConical, Download, Upload, Calculator } from 'lucide-r
 import { saveRecipe, loadRecipes, deleteRecipe } from './utils/storage';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 function App() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
