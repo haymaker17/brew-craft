@@ -63,6 +63,7 @@ export interface Recipe {
   bottlingDate?: Date;
   finalYield?: YieldEntry[]; // Multiple yield formats
   processNotes?: string;
+  images?: string[]; // Base64 encoded images
   // Calculated values
   originalGravity?: number;
   finalGravity?: number;

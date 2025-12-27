@@ -12,7 +12,15 @@ export function saveRecipe(recipe: Recipe): void {
     recipes.push({ ...recipe, createdAt: new Date(), updatedAt: new Date() });
   }
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  } catch (error) {
+    // Handle quota exceeded error
+    if (error instanceof Error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      throw new Error('Storage limit exceeded. Try removing some recipe images or deleting old recipes.');
+    }
+    throw error;
+  }
 }
 
 export function loadRecipes(): Recipe[] {

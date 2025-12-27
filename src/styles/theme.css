@@ -178,4 +178,48 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  /* Print styles for shopping list */
+  @media print {
+    /* Hide non-print elements */
+    .no-print,
+    .shopping-list-modal > div:first-child, /* Dialog overlay */
+    button:not(.print-only button),
+    header,
+    nav {
+      display: none !important;
+    }
+
+    /* Show print-only elements */
+    .print-only {
+      display: block !important;
+    }
+
+    /* Reset page styles for clean printing */
+    body {
+      background: white !important;
+      color: black !important;
+    }
+
+    /* Make dialog content full width for printing */
+    .shopping-list-modal {
+      position: static !important;
+      max-width: 100% !important;
+      max-height: none !important;
+      padding: 1rem !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+
+    /* Page break control */
+    h2, h3 {
+      page-break-after: avoid;
+    }
+
+    /* Ensure checkboxes print correctly */
+    input[type="checkbox"] {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
 }

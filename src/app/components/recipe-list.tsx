@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Beer, Calendar, Trash2, Copy, Search, Printer, MoreVertical, Star } from 'lucide-react';
+import { Beer, Calendar, Trash2, Copy, Search, Printer, MoreVertical, Star, GitBranch, LayoutGrid, List } from 'lucide-react';
 import { calculateRecipeValues, getSRMColor } from '../utils/brewing-calculations';
 import { useState, useMemo } from 'react';
 
@@ -19,13 +19,15 @@ interface RecipeListProps {
   onSelectRecipe: (recipe: Recipe) => void;
   onDeleteRecipe: (id: string) => void;
   onDuplicateRecipe: (recipe: Recipe) => void;
+  onCloneRecipe: (recipe: Recipe) => void;
   onPrintRecipe: (recipe: Recipe) => void;
 }
 
-export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicateRecipe, onPrintRecipe }: RecipeListProps) {
+export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicateRecipe, onCloneRecipe, onPrintRecipe }: RecipeListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date-newest');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   // Get unique styles from recipes
   const uniqueStyles = useMemo(() => {
@@ -121,6 +123,22 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
             </SelectContent>
           </Select>
         )}
+        <div className="flex items-center">
+          <Button
+            variant={viewMode === 'card' ? 'default' : 'ghost'}
+            size="icon"
+            onClick={() => setViewMode('card')}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="icon"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Results */}
@@ -129,7 +147,8 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
           <Beer className="w-16 h-16 mx-auto mb-4 opacity-20" />
           <p className="text-muted-foreground">No recipes match your search.</p>
         </div>
-      ) : (
+      ) : viewMode === 'card' ? (
+        // Card View
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredRecipes.map(recipe => {
             const calculated = calculateRecipeValues(recipe);
@@ -193,6 +212,15 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
+                            onCloneRecipe(recipe);
+                          }}
+                        >
+                          <GitBranch className="w-4 h-4 mr-2" />
+                          Clone
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
                             onDeleteRecipe(recipe.id);
                           }}
                           className="text-destructive focus:text-destructive"
@@ -204,6 +232,23 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
                     </DropdownMenu>
                   </div>
                 </CardHeader>
+                
+                {/* Recipe Image Thumbnail */}
+                {recipe.images && recipe.images.length > 0 && (
+                  <div className="px-6 pb-3">
+                    <div 
+                      className="w-full aspect-video rounded-lg overflow-hidden bg-muted"
+                      onClick={() => onSelectRecipe(recipe)}
+                    >
+                      <img 
+                        src={recipe.images[0]} 
+                        alt={recipe.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 <CardContent onClick={() => onSelectRecipe(recipe)}>
                   {recipe.style && (
                     <Badge variant="secondary" className="mb-3">
@@ -230,6 +275,138 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
                   </div>
                   <div className="mt-3 text-sm text-muted-foreground">
                     {recipe.ingredients.length} ingredients • {recipe.steps.length} steps
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        // List View
+        <div className="space-y-2">
+          {filteredRecipes.map(recipe => {
+            const calculated = calculateRecipeValues(recipe);
+            const beerColor = getSRMColor(calculated.srm || 0);
+            
+            return (
+              <Card
+                key={recipe.id}
+                className="cursor-pointer hover:shadow-md transition-all duration-200 border hover:border-orange-200"
+                onClick={() => onSelectRecipe(recipe)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    {/* Thumbnail */}
+                    {recipe.images && recipe.images.length > 0 ? (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        <img 
+                          src={recipe.images[0]} 
+                          alt={recipe.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div 
+                        className="w-20 h-20 rounded-lg border-2 border-white shadow-md flex-shrink-0 ring-2 ring-stone-200"
+                        style={{ backgroundColor: beerColor }}
+                      />
+                    )}
+                    
+                    {/* Recipe Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold truncate">{recipe.name}</h3>
+                        {recipe.isFavorite && (
+                          <Star className="w-4 h-4 fill-amber-400 text-amber-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {(() => {
+                            const date = recipe.brewDate ? new Date(recipe.brewDate) : new Date(recipe.createdAt);
+                            return date.toLocaleDateString();
+                          })()}
+                        </span>
+                        {recipe.style && (
+                          <Badge variant="secondary" className="text-xs">
+                            {recipe.style}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="hidden md:flex items-center gap-6 text-sm">
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-xs">ABV</div>
+                        <div className="font-medium">{calculated.abv?.toFixed(1)}%</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-xs">IBU</div>
+                        <div className="font-medium">{calculated.ibu}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-xs">OG</div>
+                        <div className="font-medium">{calculated.originalGravity?.toFixed(3)}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-xs">Size</div>
+                        <div className="font-medium">{recipe.batchSize} gal</div>
+                      </div>
+                    </div>
+                    
+                    {/* Actions */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPrintRecipe(recipe);
+                          }}
+                        >
+                          <Printer className="w-4 h-4 mr-2" />
+                          Print
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDuplicateRecipe(recipe);
+                          }}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCloneRecipe(recipe);
+                          }}
+                        >
+                          <GitBranch className="w-4 h-4 mr-2" />
+                          Clone
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteRecipe(recipe.id);
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardContent>
               </Card>

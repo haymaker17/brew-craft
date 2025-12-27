@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Ingredient, IngredientType, RecipeIngredient } from '../types/brewing';
-import { MALTS, HOPS, YEASTS, ADJUNCTS } from '../data/ingredients';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Plus, X, Settings, Check } from 'lucide-react';
+import { Plus, X, Check } from 'lucide-react';
 import { AddIngredientDialog } from './add-ingredient-dialog';
-import { ManageIngredientsDialog } from './manage-ingredients-dialog';
-import { saveCustomIngredient, loadCustomIngredients } from '../utils/custom-ingredients-storage';
+import { loadIngredients, getIngredientsByType, saveIngredient as saveIngredientToStorage } from '../utils/ingredients-storage';
 
 interface IngredientSelectorProps {
   ingredients: RecipeIngredient[];
@@ -36,8 +34,7 @@ export function IngredientSelector({
 }: IngredientSelectorProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addDialogType, setAddDialogType] = useState<IngredientType>('malt');
-  const [manageDialogOpen, setManageDialogOpen] = useState(false);
-  const [customIngredients, setCustomIngredients] = useState<Ingredient[]>(loadCustomIngredients());
+  const [customIngredients, setCustomIngredients] = useState<Ingredient[]>(loadIngredients());
 
   // Track which ingredient is being edited (-1 means adding new, null means none)
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -55,29 +52,19 @@ export function IngredientSelector({
   });
 
   const getIngredientsForType = (type: IngredientType): Ingredient[] => {
-    const baseIngredients = (() => {
-      switch (type) {
-        case 'malt': return MALTS;
-        case 'hop': return HOPS;
-        case 'yeast': return YEASTS;
-        case 'adjunct': return ADJUNCTS;
-      }
-    })();
-    
-    const custom = customIngredients.filter(i => i.type === type);
-    return [...baseIngredients, ...custom];
+    return getIngredientsByType(type);
   };
 
   const handleAddCustomIngredient = (ingredient: Ingredient) => {
-    saveCustomIngredient(ingredient);
-    setCustomIngredients(loadCustomIngredients());
+    saveIngredientToStorage(ingredient);
+    setCustomIngredients(loadIngredients());
   };
 
   const handleUpdateCustomIngredients = () => {
-    setCustomIngredients(loadCustomIngredients());
+    setCustomIngredients(loadIngredients());
   };
 
-  const getIngredientsByType = (type: IngredientType) => {
+  const getRecipeIngredientsByType = (type: IngredientType) => {
     return ingredients.filter(ri => ri.ingredient.type === type);
   };
 
@@ -325,7 +312,7 @@ export function IngredientSelector({
     type: IngredientType,
     title: string,
   ) => {
-    let typeIngredients = getIngredientsByType(type);
+    let typeIngredients = getRecipeIngredientsByType(type);
     
     // Sort hops by boil time (highest to lowest)
     if (type === 'hop') {
@@ -410,16 +397,8 @@ export function IngredientSelector({
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Ingredients</CardTitle>
-              <CardDescription>Add malts, hops, yeast, and adjuncts to your recipe</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setManageDialogOpen(true)}>
-              <Settings className="w-4 h-4 mr-2" />
-              Manage Custom
-            </Button>
-          </div>
+          <CardTitle>Ingredients</CardTitle>
+          <CardDescription>Add malts, hops, yeast, and adjuncts to your recipe</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           {renderIngredientSection('malt', 'Malts')}
@@ -434,12 +413,6 @@ export function IngredientSelector({
         onOpenChange={setAddDialogOpen}
         type={addDialogType}
         onAdd={handleAddCustomIngredient}
-      />
-
-      <ManageIngredientsDialog
-        open={manageDialogOpen}
-        onOpenChange={setManageDialogOpen}
-        onUpdate={handleUpdateCustomIngredients}
       />
     </>
   );

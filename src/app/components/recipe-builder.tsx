@@ -18,7 +18,8 @@ import {
 import { IngredientSelector } from './ingredient-selector';
 import { ProcessTracker } from './process-tracker';
 import { StyleIdentifier } from './style-identifier';
-import { ArrowLeft, Save, Printer, GitBranch, ArrowUpRight, Star } from 'lucide-react';
+import { ShoppingList } from './shopping-list';
+import { ArrowLeft, Save, Printer, GitBranch, ArrowUpRight, Star, ShoppingCart, ImagePlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RecipeBuilderProps {
@@ -35,6 +36,7 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
   const [currentRecipe, setCurrentRecipe] = useState<Recipe>(recipe);
   const [savedRecipe, setSavedRecipe] = useState<Recipe>(recipe);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
 
   // Sync with incoming recipe prop changes (for navigation between recipes)
   useEffect(() => {
@@ -71,11 +73,19 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
       toast.error('Please add at least one ingredient');
       return;
     }
-    onSave(currentRecipe);
-    toast.success('Recipe saved successfully!');
-    setSavedRecipe(currentRecipe);
-    setShowUnsavedDialog(false);
-    onBack();
+    try {
+      onSave(currentRecipe);
+      toast.success('Recipe saved successfully!');
+      setSavedRecipe(currentRecipe);
+      setShowUnsavedDialog(false);
+      onBack();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to save recipe');
+      }
+    }
   };
 
   const updateRecipe = (updates: Partial<Recipe>) => {
@@ -133,9 +143,17 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
       toast.error('Please add at least one ingredient');
       return;
     }
-    onSave(currentRecipe);
-    toast.success('Recipe saved successfully!');
-    setSavedRecipe(currentRecipe);
+    try {
+      onSave(currentRecipe);
+      toast.success('Recipe saved successfully!');
+      setSavedRecipe(currentRecipe);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to save recipe');
+      }
+    }
   };
 
   // Navigation helper with toast for clone relationships
@@ -155,6 +173,47 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
   const toggleFavorite = () => {
     updateRecipe({ isFavorite: !currentRecipe.isFavorite });
     toast.success(currentRecipe.isFavorite ? 'Removed from favorites' : 'Added to favorites');
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const currentImages = currentRecipe.images || [];
+    if (currentImages.length >= 2) {
+      toast.error('Maximum 2 images allowed');
+      return;
+    }
+
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Limit file size to 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be smaller than 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      updateRecipe({
+        images: [...currentImages, base64],
+      });
+      toast.success('Image added successfully');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = (currentRecipe.images || []).filter((_, i) => i !== index);
+    updateRecipe({
+      images: newImages.length > 0 ? newImages : undefined,
+    });
+    toast.success('Image removed');
   };
 
   const handlePromoteToMaster = () => {
@@ -224,25 +283,29 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Recipes
         </Button>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             variant={currentRecipe.isFavorite ? "default" : "outline"} 
             onClick={toggleFavorite}
           >
             <Star className={`w-4 h-4 mr-2 ${currentRecipe.isFavorite ? 'fill-current' : ''}`} />
-            {currentRecipe.isFavorite ? 'Favorited' : 'Favorite'}
+            <span className="hidden sm:inline">{currentRecipe.isFavorite ? 'Favorited' : 'Favorite'}</span>
+          </Button>
+          <Button variant="outline" onClick={() => setShowShoppingList(true)} disabled={currentRecipe.ingredients.length === 0}>
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Shopping List</span>
           </Button>
           <Button variant="outline" onClick={() => onClone(currentRecipe)}>
             <GitBranch className="w-4 h-4 mr-2" />
-            Clone
+            <span className="hidden sm:inline">Clone</span>
           </Button>
           <Button variant="outline" onClick={() => onPrint(currentRecipe)}>
             <Printer className="w-4 h-4 mr-2" />
-            Print
+            <span className="hidden sm:inline">Print</span>
           </Button>
           <Button onClick={handleSave}>
             <Save className="w-4 h-4 mr-2" />
-            Save Recipe
+            <span className="hidden sm:inline">Save Recipe</span>
           </Button>
         </div>
       </div>
@@ -318,6 +381,55 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
               }}
               placeholder="Select brew date"
             />
+          </div>
+          
+          {/* Image Upload Section */}
+          <div className="space-y-2">
+            <Label>Photos (Optional, max 2)</Label>
+            {currentRecipe.images && currentRecipe.images.length > 0 ? (
+              <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                {currentRecipe.images.map((image, index) => (
+                  <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
+                    <img 
+                      src={image} 
+                      alt={`Recipe photo ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                
+                {currentRecipe.images.length < 2 && (
+                  <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 bg-muted/20 hover:bg-muted/30">
+                    <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Add Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            ) : (
+              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer transition-colors bg-muted/20 hover:bg-muted/30">
+                <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Add Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -505,6 +617,13 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Shopping List Modal */}
+      <ShoppingList 
+        recipe={currentRecipe} 
+        open={showShoppingList} 
+        onClose={() => setShowShoppingList(false)} 
+      />
     </div>
   );
 }

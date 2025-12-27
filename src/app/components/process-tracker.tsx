@@ -94,7 +94,7 @@ export function ProcessTracker({
       duration: parseInt(mashDuration),
     };
 
-    if (editingMashId) {
+    if (editingMashId && editingMashId !== 'custom-new') {
       onUpdateMashStep(editingMashId, stepData);
       setEditingMashId(null);
     } else {
@@ -104,7 +104,7 @@ export function ProcessTracker({
     setMashStepName('');
     setMashTemp('');
     setMashDuration('');
-    setShowMashOptions(false);
+    setEditingMashId(null);
   };
 
   const handleAddCommonStep = (step: Omit<MashStep, 'id'>) => {
@@ -332,8 +332,8 @@ export function ProcessTracker({
             </div>
           )}
 
-          {/* Mash step form - shown when editing or adding custom */}
-          {editingMashId && editingMashId !== 'viewing' && renderMashStepForm()}
+          {/* Mash step form - shown ONLY when adding custom new step, not when editing existing */}
+          {editingMashId === 'custom-new' && renderMashStepForm()}
 
           {/* Display mash steps */}
           {mashSteps.length > 0 && (
@@ -387,24 +387,21 @@ export function ProcessTracker({
         <div className="space-y-4 pt-4 border-t">
           <h3>Brewing Milestones</h3>
 
-          <div className="grid gap-4">
-            {/* Yeast Pitch Date */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Yeast Pitch Date
-              </Label>
-              <Input
-                type="date"
-                value={formatDate(yeastPitchDate)}
-                onChange={(e) => handleDateChange(e.target.value, onUpdateYeastPitchDate)}
-              />
-            </div>
+          <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+            {/* Dates Section */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Yeast Pitch Date
+                </Label>
+                <Input
+                  type="date"
+                  value={formatDate(yeastPitchDate)}
+                  onChange={(e) => handleDateChange(e.target.value, onUpdateYeastPitchDate)}
+                />
+              </div>
 
-            {/* Bottling/Kegging Section */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-              <h4>Bottling/Kegging</h4>
-              
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
@@ -416,101 +413,28 @@ export function ProcessTracker({
                   onChange={(e) => handleDateChange(e.target.value, onUpdateBottlingDate)}
                 />
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2">
-                    <Beer className="w-4 h-4" />
-                    Final Yield
-                  </Label>
-                  <div className="flex gap-1">
-                    {!finalYield?.find(y => y.type === 'gallons') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddYield('gallons')}
-                      >
-                        + Gallons
-                      </Button>
-                    )}
-                    {!finalYield?.find(y => y.type === 'bottles-12oz') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddYield('bottles-12oz')}
-                      >
-                        + 12oz
-                      </Button>
-                    )}
-                    {!finalYield?.find(y => y.type === 'bottles-22oz') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddYield('bottles-22oz')}
-                      >
-                        + 22oz
-                      </Button>
-                    )}
-                    {!finalYield?.find(y => y.type === 'cornelius-keg') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddYield('cornelius-keg')}
-                      >
-                        + Keg
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {finalYield && finalYield.length > 0 && (
-                  <div className="space-y-2">
-                    {finalYield.map(y => (
-                      <div key={y.id} className="flex items-center gap-2">
-                        <Label className="w-32">{yieldTypeLabels[y.type]}</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={y.amount || ''}
-                          onChange={(e) => handleUpdateYield(y.id, parseFloat(e.target.value) || 0)}
-                          placeholder="0"
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveYield(y.id)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Actual Gravity Readings */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-              <h4>Gravity Readings</h4>
-              
+            {/* Gravity Readings */}
+            <div className="pt-4 border-t">
+              <Label className="mb-3 block">Gravity Readings</Label>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Actual OG</Label>
+                  <Label className="text-sm text-muted-foreground">Actual OG</Label>
                   <Input
                     type="number"
                     step="0.001"
-                    value={actualOG || ''}
+                    value={actualOG && !isNaN(actualOG) ? actualOG : ''}
                     onChange={(e) => onUpdateActualOG(e.target.value ? parseFloat(e.target.value) : undefined)}
                     placeholder="1.050"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Actual FG</Label>
+                  <Label className="text-sm text-muted-foreground">Actual FG</Label>
                   <Input
                     type="number"
                     step="0.001"
-                    value={actualFG || ''}
+                    value={actualFG && !isNaN(actualFG) ? actualFG : ''}
                     onChange={(e) => onUpdateActualFG(e.target.value ? parseFloat(e.target.value) : undefined)}
                     placeholder="1.010"
                   />
@@ -518,21 +442,92 @@ export function ProcessTracker({
               </div>
 
               {actualOG && actualFG && (
-                <div className="pt-3 border-t space-y-2">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <div className="text-muted-foreground">Actual ABV</div>
-                      <div className="font-medium">{calculateABV(actualOG, actualFG).toFixed(2)}%</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Calories (12 oz)</div>
-                      <div className="font-medium">{Math.round(calculateCalories(actualOG, actualFG))}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Carbs (12 oz)</div>
-                      <div className="font-medium">{calculateCarbs(actualOG, actualFG).toFixed(1)}g</div>
-                    </div>
+                <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="text-muted-foreground">Actual ABV</div>
+                    <div className="font-medium">{calculateABV(actualOG, actualFG).toFixed(2)}%</div>
                   </div>
+                  <div>
+                    <div className="text-muted-foreground">Calories (12 oz)</div>
+                    <div className="font-medium">{Math.round(calculateCalories(actualOG, actualFG, calculateABV(actualOG, actualFG)))}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Carbs (12 oz)</div>
+                    <div className="font-medium">{calculateCarbs(actualOG, actualFG).toFixed(1)}g</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Final Yield */}
+            <div className="pt-4 border-t space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Beer className="w-4 h-4" />
+                  Final Yield
+                </Label>
+                <div className="flex gap-1">
+                  {!finalYield?.find(y => y.type === 'gallons') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddYield('gallons')}
+                    >
+                      + Gallons
+                    </Button>
+                  )}
+                  {!finalYield?.find(y => y.type === 'bottles-12oz') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddYield('bottles-12oz')}
+                    >
+                      + 12oz
+                    </Button>
+                  )}
+                  {!finalYield?.find(y => y.type === 'bottles-22oz') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddYield('bottles-22oz')}
+                    >
+                      + 22oz
+                    </Button>
+                  )}
+                  {!finalYield?.find(y => y.type === 'cornelius-keg') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddYield('cornelius-keg')}
+                    >
+                      + Keg
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {finalYield && finalYield.length > 0 && (
+                <div className="space-y-2">
+                  {finalYield.map(y => (
+                    <div key={y.id} className="flex items-center gap-2">
+                      <Label className="w-32 text-sm text-muted-foreground">{yieldTypeLabels[y.type]}</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={y.amount && !isNaN(y.amount) ? y.amount : ''}
+                        onChange={(e) => handleUpdateYield(y.id, parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveYield(y.id)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

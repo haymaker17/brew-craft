@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Trash2 } from 'lucide-react';
-import { loadCustomIngredients, deleteCustomIngredient } from '../utils/custom-ingredients-storage';
+import { loadIngredients, deleteIngredient } from '../utils/ingredients-storage';
 import { toast } from 'sonner';
 
 interface ManageIngredientsDialogProps {
@@ -22,25 +22,25 @@ interface ManageIngredientsDialogProps {
 }
 
 export function ManageIngredientsDialog({ open, onOpenChange, onUpdate }: ManageIngredientsDialogProps) {
-  const [customIngredients, setCustomIngredients] = useState<Ingredient[]>([]);
+  const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
 
   useEffect(() => {
     if (open) {
-      setCustomIngredients(loadCustomIngredients());
+      setAllIngredients(loadIngredients());
     }
   }, [open]);
 
   const handleDelete = (id: string, name: string) => {
     if (confirm(`Delete "${name}"? This cannot be undone.`)) {
-      deleteCustomIngredient(id);
-      setCustomIngredients(loadCustomIngredients());
+      deleteIngredient(id);
+      setAllIngredients(loadIngredients());
       onUpdate();
       toast.success('Ingredient deleted');
     }
   };
 
   const getByType = (type: IngredientType) => {
-    return customIngredients.filter(i => i.type === type);
+    return allIngredients.filter(i => i.type === type);
   };
 
   const renderIngredientList = (type: IngredientType) => {
@@ -49,51 +49,65 @@ export function ManageIngredientsDialog({ open, onOpenChange, onUpdate }: Manage
     if (ingredients.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
-          No custom {type}s added yet
+          No {type}s available
         </div>
       );
     }
 
+    // Sort: custom ingredients first, then default
+    const sortedIngredients = [...ingredients].sort((a, b) => {
+      const aIsCustom = a.id.startsWith('custom-') ? 1 : 0;
+      const bIsCustom = b.id.startsWith('custom-') ? 1 : 0;
+      return bIsCustom - aIsCustom;
+    });
+
     return (
       <ScrollArea className="h-[400px] pr-4">
         <div className="space-y-2">
-          {ingredients.map((ingredient) => (
-            <div
-              key={ingredient.id}
-              className="flex items-start justify-between p-3 border rounded-lg"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span>{ingredient.name}</span>
-                  <Badge variant="secondary" className="text-xs">Custom</Badge>
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {type === 'malt' && (
-                    <>
-                      {ingredient.lovibond && `${ingredient.lovibond}°L`}
-                      {ingredient.lovibond && ingredient.ppg && ' • '}
-                      {ingredient.ppg && `${ingredient.ppg} PPG`}
-                    </>
-                  )}
-                  {type === 'hop' && ingredient.alphaAcid && `${ingredient.alphaAcid}% AA`}
-                  {type === 'yeast' && (
-                    <>
-                      {ingredient.attenuation && `${ingredient.attenuation}% attenuation`}
-                      {ingredient.flocculation && ` • ${ingredient.flocculation} flocculation`}
-                      {ingredient.tempRange && ` • ${ingredient.tempRange[0]}-${ingredient.tempRange[1]}°F`}
-                    </>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(ingredient.id, ingredient.name)}
+          {sortedIngredients.map((ingredient) => {
+            const isCustom = ingredient.id.startsWith('custom-');
+            return (
+              <div
+                key={ingredient.id}
+                className="flex items-start justify-between p-3 border rounded-lg"
               >
-                <Trash2 className="w-4 h-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span>{ingredient.name}</span>
+                    {isCustom ? (
+                      <Badge variant="secondary" className="text-xs">Custom</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">Default</Badge>
+                    )}
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {type === 'malt' && (
+                      <>
+                        {ingredient.lovibond && `${ingredient.lovibond}°L`}
+                        {ingredient.lovibond && ingredient.ppg && ' • '}
+                        {ingredient.ppg && `${ingredient.ppg} PPG`}
+                      </>
+                    )}
+                    {type === 'hop' && ingredient.alphaAcid && `${ingredient.alphaAcid}% AA`}
+                    {type === 'yeast' && (
+                      <>
+                        {ingredient.attenuation && `${ingredient.attenuation}% attenuation`}
+                        {ingredient.flocculation && ` • ${ingredient.flocculation} flocculation`}
+                        {ingredient.tempRange && ` • ${ingredient.tempRange[0]}-${ingredient.tempRange[1]}°F`}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(ingredient.id, ingredient.name)}
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </ScrollArea>
     );
@@ -103,9 +117,9 @@ export function ManageIngredientsDialog({ open, onOpenChange, onUpdate }: Manage
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Manage Custom Ingredients</DialogTitle>
+          <DialogTitle>Manage Ingredients</DialogTitle>
           <DialogDescription>
-            View and delete your custom ingredients
+            View and delete any ingredient from your database
           </DialogDescription>
         </DialogHeader>
 

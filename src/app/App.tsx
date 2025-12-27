@@ -4,8 +4,9 @@ import { RecipeList } from './components/recipe-list';
 import { RecipeBuilder } from './components/recipe-builder';
 import { PrintView } from './components/print-view';
 import { PrimingCalculator } from './components/priming-calculator';
+import { IngredientManagementPage } from './components/ingredient-management-page';
 import { Button } from './components/ui/button';
-import { Beer, Plus, FlaskConical, Download, Upload, Calculator } from 'lucide-react';
+import { Beer, Plus, FlaskConical, Download, Upload, Calculator, Database } from 'lucide-react';
 import { saveRecipe, loadRecipes, deleteRecipe } from './utils/storage';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
@@ -17,7 +18,7 @@ function App() {
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
   const [printRecipe, setPrintRecipe] = useState<Recipe | null>(null);
   const [showPrimingCalculator, setShowPrimingCalculator] = useState(false);
-  const [view, setView] = useState<'list' | 'builder'>('list');
+  const [view, setView] = useState<'list' | 'builder' | 'ingredients'>('list');
 
   useEffect(() => {
     setRecipes(loadRecipes());
@@ -47,8 +48,17 @@ function App() {
   };
 
   const handleSaveRecipe = (recipe: Recipe) => {
-    saveRecipe(recipe);
-    setRecipes(loadRecipes());
+    try {
+      saveRecipe(recipe);
+      setRecipes(loadRecipes());
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to save recipe');
+      }
+      throw error; // Re-throw so the caller knows it failed
+    }
   };
 
   const handleDeleteRecipe = (id: string) => {
@@ -313,6 +323,10 @@ function App() {
                       <Calculator className="w-4 h-4 mr-2" />
                       Priming Calculator
                     </Button>
+                    <Button onClick={() => setView('ingredients')} variant="ghost" size="sm">
+                      <Database className="w-4 h-4 mr-2" />
+                      Ingredients
+                    </Button>
                   </div>
                 </div>
                 <RecipeList
@@ -320,6 +334,7 @@ function App() {
                   onSelectRecipe={handleSelectRecipe}
                   onDeleteRecipe={handleDeleteRecipe}
                   onDuplicateRecipe={handleDuplicateRecipe}
+                  onCloneRecipe={handleCloneRecipe}
                   onPrintRecipe={handlePrintRecipe}
                 />
 
@@ -336,6 +351,8 @@ function App() {
             allRecipes={recipes}
             onSelectRecipe={handleSelectRecipe}
           />
+        ) : view === 'ingredients' ? (
+          <IngredientManagementPage onBack={handleBack} />
         ) : null}
       </main>
 

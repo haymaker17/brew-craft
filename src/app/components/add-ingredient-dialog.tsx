@@ -81,7 +81,7 @@ export function AddIngredientDialog({ open, onOpenChange, type, onAdd }: AddIngr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Custom {type.charAt(0).toUpperCase() + type.slice(1)}</DialogTitle>
+          <DialogTitle>Add Custom {type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Ingredient'}</DialogTitle>
           <DialogDescription>
             Create a custom ingredient to add to your library
           </DialogDescription>
