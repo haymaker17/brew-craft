@@ -154,6 +154,16 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
             const calculated = calculateRecipeValues(recipe);
             const beerColor = getSRMColor(calculated.srm || 0);
             
+            // Use saved values if available, otherwise recalculate
+            // Priority: actualOG/FG > saved values > calculated values
+            const displayOG = recipe.actualOG ?? recipe.originalGravity ?? calculated.originalGravity;
+            const displayFG = recipe.actualFG ?? recipe.finalGravity ?? calculated.finalGravity;
+            const displayABV = (recipe.actualOG && recipe.actualFG)
+              ? ((recipe.actualOG - recipe.actualFG) * 131.25)
+              : (recipe.abv ?? calculated.abv);
+            const displayIBU = recipe.ibu ?? calculated.ibu;
+            const displaySRM = recipe.srm ?? calculated.srm;
+            
             return (
               <Card
                 key={recipe.id}
@@ -258,15 +268,15 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-muted-foreground">ABV:</span>{' '}
-                      <span>{calculated.abv?.toFixed(1)}%</span>
+                      <span>{displayABV?.toFixed(1)}%</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">IBU:</span>{' '}
-                      <span>{calculated.ibu}</span>
+                      <span>{displayIBU}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">OG:</span>{' '}
-                      <span>{calculated.originalGravity?.toFixed(3)}</span>
+                      <span>{displayOG?.toFixed(3)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Size:</span>{' '}
@@ -287,6 +297,16 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
           {filteredRecipes.map(recipe => {
             const calculated = calculateRecipeValues(recipe);
             const beerColor = getSRMColor(calculated.srm || 0);
+            
+            // Use saved values if available, otherwise recalculate
+            // Priority: actualOG/FG > saved values > calculated values
+            const displayOG = recipe.actualOG ?? recipe.originalGravity ?? calculated.originalGravity;
+            const displayFG = recipe.actualFG ?? recipe.finalGravity ?? calculated.finalGravity;
+            const displayABV = (recipe.actualOG && recipe.actualFG)
+              ? ((recipe.actualOG - recipe.actualFG) * 131.25)
+              : (recipe.abv ?? calculated.abv);
+            const displayIBU = recipe.ibu ?? calculated.ibu;
+            const displaySRM = recipe.srm ?? calculated.srm;
             
             return (
               <Card
@@ -340,15 +360,15 @@ export function RecipeList({ recipes, onSelectRecipe, onDeleteRecipe, onDuplicat
                     <div className="hidden md:flex items-center gap-6 text-sm">
                       <div className="text-center">
                         <div className="text-muted-foreground text-xs">ABV</div>
-                        <div className="font-medium">{calculated.abv?.toFixed(1)}%</div>
+                        <div className="font-medium">{displayABV?.toFixed(1)}%</div>
                       </div>
                       <div className="text-center">
                         <div className="text-muted-foreground text-xs">IBU</div>
-                        <div className="font-medium">{calculated.ibu}</div>
+                        <div className="font-medium">{displayIBU}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-muted-foreground text-xs">OG</div>
-                        <div className="font-medium">{calculated.originalGravity?.toFixed(3)}</div>
+                        <div className="font-medium">{displayOG?.toFixed(3)}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-muted-foreground text-xs">Size</div>

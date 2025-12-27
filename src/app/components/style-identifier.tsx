@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { matchBeerStyle, calculateRecipeValues, getSRMColor, calculateABV } from '../utils/brewing-calculations';
+import { matchBeerStyle, calculateRecipeValues, getSRMColor } from '../utils/brewing-calculations';
 import { BEER_STYLES } from '../data/beer-styles';
 import { Sparkles, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
@@ -18,26 +18,16 @@ export function StyleIdentifier({ recipe }: StyleIdentifierProps) {
   const calculated = calculateRecipeValues(recipe);
   const beerColor = getSRMColor(calculated.srm || 0);
   
-  // Use actual measurements if available, otherwise use estimated
-  const displayOG = recipe.actualOG || calculated.originalGravity || 0;
-  const displayFG = recipe.actualFG || calculated.finalGravity || 0;
+  // Use saved values with priority: actualOG/FG > saved values > calculated values
+  const displayOG = recipe.actualOG ?? recipe.originalGravity ?? calculated.originalGravity ?? 0;
+  const displayFG = recipe.actualFG ?? recipe.finalGravity ?? calculated.finalGravity ?? 0;
   const displayABV = (recipe.actualOG && recipe.actualFG) 
-    ? calculateABV(recipe.actualOG, recipe.actualFG)
-    : calculateABV(calculated.originalGravity || 0, calculated.finalGravity || 0);
-  
-  // Calculate calories and carbs based on actual or estimated values
-  const displayCalories = (recipe.actualOG && recipe.actualFG)
-    ? Math.round(((6.9 * displayABV) + 4.0 * ((0.1808 * recipe.actualOG) + (0.8192 * recipe.actualFG) - 1.0004 - 0.1)) * recipe.actualFG * 3.55)
-    : calculated.caloriesPer12oz;
-  
-  const displayCarbs = (recipe.actualOG && recipe.actualFG)
-    ? (() => {
-        const ogPlato = (recipe.actualOG - 1) * 1000 / 4;
-        const fgPlato = (recipe.actualFG - 1) * 1000 / 4;
-        const re = (0.1808 * ogPlato) + (0.8192 * fgPlato);
-        return Math.round(re * 3.55 * 10) / 10;
-      })()
-    : calculated.carbsPer12oz;
+    ? ((recipe.actualOG - recipe.actualFG) * 131.25)
+    : (recipe.abv ?? calculated.abv ?? 0);
+  const displayIBU = recipe.ibu ?? calculated.ibu ?? 0;
+  const displaySRM = recipe.srm ?? calculated.srm ?? 0;
+  const displayCalories = recipe.caloriesPer12oz ?? calculated.caloriesPer12oz ?? 0;
+  const displayCarbs = recipe.carbsPer12oz ?? calculated.carbsPer12oz ?? 0;
   
   const isUsingActual = !!(recipe.actualOG && recipe.actualFG);
 
@@ -74,7 +64,7 @@ export function StyleIdentifier({ recipe }: StyleIdentifierProps) {
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">IBU</div>
-              <div>{calculated.ibu}</div>
+              <div>{displayIBU}</div>
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">SRM (Color)</div>
@@ -83,7 +73,7 @@ export function StyleIdentifier({ recipe }: StyleIdentifierProps) {
                   className="w-6 h-6 rounded border border-border"
                   style={{ backgroundColor: beerColor }}
                 />
-                {calculated.srm?.toFixed(1)}
+                {displaySRM.toFixed(1)}
               </div>
             </div>
             <div className="space-y-1">

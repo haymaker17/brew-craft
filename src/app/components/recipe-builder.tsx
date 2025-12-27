@@ -21,6 +21,7 @@ import { StyleIdentifier } from './style-identifier';
 import { ShoppingList } from './shopping-list';
 import { ArrowLeft, Save, Printer, GitBranch, ArrowUpRight, Star, ShoppingCart, ImagePlus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { calculateRecipeValues, getSRMColor } from '../utils/brewing-calculations';
 
 interface RecipeBuilderProps {
   recipe: Recipe;
@@ -434,6 +435,108 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
         </CardContent>
       </Card>
 
+      {/* Recipe Stats - Live Calculated Values */}
+      {currentRecipe.ingredients.length > 0 && (() => {
+        const calculated = calculateRecipeValues(currentRecipe);
+        const beerColor = getSRMColor(calculated.srm || 0);
+        
+        // Use actual values if set, otherwise use calculated estimates
+        const displayOG = currentRecipe.actualOG ?? calculated.originalGravity;
+        const displayFG = currentRecipe.actualFG ?? calculated.finalGravity;
+        const displayABV = currentRecipe.actualOG && currentRecipe.actualFG 
+          ? ((currentRecipe.actualOG - currentRecipe.actualFG) * 131.25)
+          : calculated.abv;
+        
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Recipe Stats</CardTitle>
+              <CardDescription>
+                {currentRecipe.actualOG || currentRecipe.actualFG 
+                  ? 'Using actual measurements (edit to update)' 
+                  : 'Estimated values (click to enter actual measurements)'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm text-muted-foreground">OG</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={displayOG && !isNaN(displayOG) ? displayOG.toFixed(3) : ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                      updateRecipe({ actualOG: value });
+                    }}
+                    placeholder={calculated.originalGravity?.toFixed(3) || '1.050'}
+                    className="h-9 text-center font-bold"
+                  />
+                  {!currentRecipe.actualOG && calculated.originalGravity && (
+                    <span className="text-xs text-muted-foreground">Est.</span>
+                  )}
+                </div>
+                
+                <div className="space-y-1">
+                  <Label className="text-sm text-muted-foreground">FG</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={displayFG && !isNaN(displayFG) ? displayFG.toFixed(3) : ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                      updateRecipe({ actualFG: value });
+                    }}
+                    placeholder={calculated.finalGravity?.toFixed(3) || '1.010'}
+                    className="h-9 text-center font-bold"
+                  />
+                  {!currentRecipe.actualFG && calculated.finalGravity && (
+                    <span className="text-xs text-muted-foreground">Est.</span>
+                  )}
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground mb-1">ABV</div>
+                  <div className="font-bold text-lg">{displayABV?.toFixed(1)}%</div>
+                  {!(currentRecipe.actualOG && currentRecipe.actualFG) && (
+                    <span className="text-xs text-muted-foreground">Est.</span>
+                  )}
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground mb-1">IBU</div>
+                  <div className="font-bold text-lg">{calculated.ibu}</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground mb-1">SRM</div>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="font-bold text-lg">{calculated.srm?.toFixed(1)}</div>
+                    <div 
+                      className="w-8 h-8 rounded-full border-2 border-border shadow-sm"
+                      style={{ backgroundColor: beerColor }}
+                      title={`SRM: ${calculated.srm?.toFixed(1)}`}
+                    />
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Calories</div>
+                  <div className="font-bold text-lg">{calculated.caloriesPer12oz}</div>
+                  <div className="text-xs text-muted-foreground">per 12oz</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Carbs</div>
+                  <div className="font-bold text-lg">{calculated.carbsPer12oz?.toFixed(1)}g</div>
+                  <div className="text-xs text-muted-foreground">per 12oz</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Main Tabs */}
       <Tabs defaultValue="ingredients" className="w-full">
         <TabsList className={`grid w-full ${
@@ -468,8 +571,6 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
             bottlingDate={currentRecipe.bottlingDate}
             finalYield={currentRecipe.finalYield}
             processNotes={currentRecipe.processNotes}
-            actualOG={currentRecipe.actualOG}
-            actualFG={currentRecipe.actualFG}
             onAddMashStep={addStep}
             onUpdateMashStep={updateStep}
             onRemoveMashStep={removeStep}
@@ -477,8 +578,6 @@ export function RecipeBuilder({ recipe, onSave, onBack, onPrint, onClone, allRec
             onUpdateBottlingDate={(date) => updateRecipe({ bottlingDate: date })}
             onUpdateFinalYield={(yields) => updateRecipe({ finalYield: yields })}
             onUpdateProcessNotes={(notes) => updateRecipe({ processNotes: notes })}
-            onUpdateActualOG={(og) => updateRecipe({ actualOG: og })}
-            onUpdateActualFG={(fg) => updateRecipe({ actualFG: fg })}
           />
         </TabsContent>
 

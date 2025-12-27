@@ -8,6 +8,7 @@ import { IngredientManagementPage } from './components/ingredient-management-pag
 import { Button } from './components/ui/button';
 import { Beer, Plus, FlaskConical, Download, Upload, Calculator, Database } from 'lucide-react';
 import { saveRecipe, loadRecipes, deleteRecipe } from './utils/storage';
+import { calculateRecipeValues } from './utils/brewing-calculations';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { db } from '../firebase';
@@ -49,7 +50,13 @@ function App() {
 
   const handleSaveRecipe = (recipe: Recipe) => {
     try {
-      saveRecipe(recipe);
+      // Calculate and save recipe values
+      const calculatedValues = calculateRecipeValues(recipe);
+      const recipeWithCalculations = {
+        ...recipe,
+        ...calculatedValues,
+      };
+      saveRecipe(recipeWithCalculations);
       setRecipes(loadRecipes());
     } catch (error) {
       if (error instanceof Error) {

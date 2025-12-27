@@ -6,7 +6,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Plus, X, Thermometer, Clock, Calendar, Beer, Check } from 'lucide-react';
-import { calculateABV, calculateCalories, calculateCarbs } from '../utils/brewing-calculations';
 
 interface ProcessTrackerProps {
   mashSteps: MashStep[];
@@ -14,8 +13,6 @@ interface ProcessTrackerProps {
   bottlingDate?: Date;
   finalYield?: YieldEntry[];
   processNotes?: string;
-  actualOG?: number;
-  actualFG?: number;
   onAddMashStep: (step: Omit<MashStep, 'id'>) => void;
   onUpdateMashStep: (id: string, step: Omit<MashStep, 'id'>) => void;
   onRemoveMashStep: (id: string) => void;
@@ -23,8 +20,6 @@ interface ProcessTrackerProps {
   onUpdateBottlingDate: (date: Date | undefined) => void;
   onUpdateFinalYield: (yields: YieldEntry[]) => void;
   onUpdateProcessNotes: (notes: string) => void;
-  onUpdateActualOG: (og: number | undefined) => void;
-  onUpdateActualFG: (fg: number | undefined) => void;
 }
 
 export function ProcessTracker({
@@ -33,8 +28,6 @@ export function ProcessTracker({
   bottlingDate,
   finalYield,
   processNotes,
-  actualOG,
-  actualFG,
   onAddMashStep,
   onUpdateMashStep,
   onRemoveMashStep,
@@ -42,8 +35,6 @@ export function ProcessTracker({
   onUpdateBottlingDate,
   onUpdateFinalYield,
   onUpdateProcessNotes,
-  onUpdateActualOG,
-  onUpdateActualFG,
 }: ProcessTrackerProps) {
   const [showMashOptions, setShowMashOptions] = useState(false);
   const [editingMashId, setEditingMashId] = useState<string | null>(null);
@@ -413,50 +404,6 @@ export function ProcessTracker({
                   onChange={(e) => handleDateChange(e.target.value, onUpdateBottlingDate)}
                 />
               </div>
-            </div>
-
-            {/* Gravity Readings */}
-            <div className="pt-4 border-t">
-              <Label className="mb-3 block">Gravity Readings</Label>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Actual OG</Label>
-                  <Input
-                    type="number"
-                    step="0.001"
-                    value={actualOG && !isNaN(actualOG) ? actualOG : ''}
-                    onChange={(e) => onUpdateActualOG(e.target.value ? parseFloat(e.target.value) : undefined)}
-                    placeholder="1.050"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Actual FG</Label>
-                  <Input
-                    type="number"
-                    step="0.001"
-                    value={actualFG && !isNaN(actualFG) ? actualFG : ''}
-                    onChange={(e) => onUpdateActualFG(e.target.value ? parseFloat(e.target.value) : undefined)}
-                    placeholder="1.010"
-                  />
-                </div>
-              </div>
-
-              {actualOG && actualFG && (
-                <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">Actual ABV</div>
-                    <div className="font-medium">{calculateABV(actualOG, actualFG).toFixed(2)}%</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Calories (12 oz)</div>
-                    <div className="font-medium">{Math.round(calculateCalories(actualOG, actualFG, calculateABV(actualOG, actualFG)))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Carbs (12 oz)</div>
-                    <div className="font-medium">{calculateCarbs(actualOG, actualFG).toFixed(1)}g</div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Final Yield */}
