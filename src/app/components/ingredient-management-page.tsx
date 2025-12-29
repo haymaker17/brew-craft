@@ -10,6 +10,8 @@ import { Pencil, Trash2, Plus, ArrowLeft, Search } from 'lucide-react';
 import { loadIngredients, deleteIngredient, saveIngredient } from '../utils/ingredients-storage';
 import { toast } from 'sonner';
 import { AddIngredientDialog } from './add-ingredient-dialog';
+import { db } from '../../firebase'; 
+import { collection, onSnapshot, query, orderBy, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
 interface IngredientManagementPageProps {
   onBack: () => void;
